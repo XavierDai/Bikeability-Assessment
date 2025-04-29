@@ -11,7 +11,8 @@ const {
 router.get('/', getRatings);
 
 // 根据位置获取评分
-router.get('/location/:lat/:lng/:radius?', getRatingsByLocation);
+router.get('/location/:lat/:lng', getRatingsByLocation);
+router.get('/location/:lat/:lng/:radius', getRatingsByLocation);
 
 // 获取评分统计数据
 router.get('/stats', getRatingStats);
