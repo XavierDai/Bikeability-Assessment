@@ -19,6 +19,7 @@ app.use(express.json());
 
 // 路由
 app.use('/api/ratings', require('./routes/ratings'));
+app.use('/api/surveys', require('./routes/survey'));
 
 // 简单的健康检查路由
 app.get('/', (req, res) => {
