@@ -1,6 +1,11 @@
 const mongoose = require('mongoose');
 
 const RatingSchema = new mongoose.Schema({
+  // 添加会话ID字段
+  sessionId: {
+    type: String,
+    required: false // 不强制要求，兼容旧数据
+  },
   location: {
     lat: {
       type: String,
@@ -61,6 +66,11 @@ const RatingSchema = new mongoose.Schema({
       min: 1,
       max: 10
     }
+  },
+  // 可选字段，用于存储首次评分时的问卷数据
+  surveyData: {
+    type: mongoose.Schema.Types.Mixed,
+    required: false
   },
   createdAt: {
     type: Date,
