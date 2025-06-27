@@ -1,158 +1,145 @@
 const mongoose = require('mongoose');
 
 const RatingSchema = new mongoose.Schema({
-  // 会话ID字段
   sessionId: {
     type: String,
-    required: false, // 不强制要求，兼容旧数据
+    required: true,
     index: true
   },
   
-  // 位置信息 - 保持原有格式但改为Number类型
   location: {
     lat: {
-      type: Number, // 改为Number类型，更适合地理计算
+      type: String,
       required: true
     },
     lng: {
-      type: Number, // 改为Number类型，更适合地理计算
+      type: String,
       required: true
     }
   },
   
-  // 道路信息
   road: {
     id: {
       type: String
     },
     name: {
       type: String,
-      default: '未命名道路'
+      default: 'Unnamed road'
     },
     type: {
       type: String,
-      default: '未知'
+      default: 'Unknown'
     }
   },
   
-  // 评分信息 - 简化为三个维度，保留旧字段以兼容
   ratings: {
-    // 新的三个维度（必需）
-    safety: {
+    comfortable: {
       type: Number,
       required: true,
       min: 1,
-      max: 10
+      max: 4
     },
-    comfort: {
+    safe: {
       type: Number,
       required: true,
       min: 1,
-      max: 10
+      max: 4
     },
-    total: {
+    overall: {
       type: Number,
       required: true,
       min: 1,
-      max: 10
-    },
-    // 保留旧字段以兼容现有数据（可选）
-    bikelanes: {
-      type: Number,
-      min: 1,
-      max: 10
-    },
-    surface: {
-      type: Number,
-      min: 1,
-      max: 10
-    },
-    traffic: {
-      type: Number,
-      min: 1,
-      max: 10
-    },
-    connectivity: {
-      type: Number,
-      min: 1,
-      max: 10
+      max: 4
     }
   },
   
-  // 选中的标签
-  selectedTags: [{
-    type: String
-  }],
+  ratingReason: {
+    type: String,
+    default: ''
+  },
   
-  // 用户信息
+  surveyData: {
+    influencingFactors: [{
+      type: String
+    }],
+    additionalComments: {
+      type: String,
+      default: ''
+    }
+  },
+  
   ipAddress: String,
   userAgent: String,
   
-  // 可选字段，用于存储首次评分时的问卷数据
-  surveyData: {
-    type: mongoose.Schema.Types.Mixed,
-    required: false
-  },
-  
-  // 时间戳
   createdAt: {
     type: Date,
     default: Date.now
   }
 }, {
-  timestamps: true // 自动添加createdAt和updatedAt
+  timestamps: true
 });
 
-// 创建索引以提高查询性能
-RatingSchema.index({ 'location': '2dsphere' });
+// Indexes for better query performance
+RatingSchema.index({ 'location.lat': 1, 'location.lng': 1 });
 RatingSchema.index({ createdAt: -1 });
 RatingSchema.index({ 'road.id': 1, createdAt: -1 });
 RatingSchema.index({ sessionId: 1, createdAt: -1 });
 
-// 虚拟字段：格式化的位置信息
+// Virtual field for formatted location
 RatingSchema.virtual('formattedLocation').get(function() {
   if (this.location && this.location.lat && this.location.lng) {
     return {
-      latitude: this.location.lat,
-      longitude: this.location.lng
+      latitude: parseFloat(this.location.lat),
+      longitude: parseFloat(this.location.lng)
     };
   }
   return null;
 });
 
-// 实例方法：获取评分摘要
+// Instance method for rating summary
 RatingSchema.methods.getRatingSummary = function() {
   return {
-    safety: this.ratings.safety,
-    comfort: this.ratings.comfort,
-    total: this.ratings.total,
-    hasPreferences: this.selectedTags && this.selectedTags.length > 0,
-    preferenceCount: this.selectedTags ? this.selectedTags.length : 0
+    comfortable: this.ratings.comfortable,
+    safe: this.ratings.safe,
+    overall: this.ratings.overall,
+    hasInfluencingFactors: this.surveyData && this.surveyData.influencingFactors && this.surveyData.influencingFactors.length > 0,
+    influencingFactorCount: this.surveyData && this.surveyData.influencingFactors ? this.surveyData.influencingFactors.length : 0
   };
 };
 
-// 中间件：保存前验证
+// Pre-save validation
 RatingSchema.pre('save', function(next) {
-  // 验证经纬度范围
+  // Validate coordinates
   if (this.location) {
     const { lat, lng } = this.location;
-    if (lng < -180 || lng > 180 || lat < -90 || lat > 90) {
-      next(new Error('无效的经纬度坐标'));
+    const latNum = parseFloat(lat);
+    const lngNum = parseFloat(lng);
+    
+    if (isNaN(latNum) || isNaN(lngNum) || lngNum < -180 || lngNum > 180 || latNum < -90 || latNum > 90) {
+      next(new Error('Invalid coordinates'));
       return;
     }
   }
   
-  // 验证评分值
-  const { safety, comfort, total } = this.ratings;
-  if (safety < 1 || safety > 10 || comfort < 1 || comfort > 10 || total < 1 || total > 10) {
-    next(new Error('评分必须在1-10之间'));
+  // Validate rating values
+  const { comfortable, safe, overall } = this.ratings;
+  if (comfortable < 1 || comfortable > 4) {
+    next(new Error('Comfortable rating must be between 1-4'));
+    return;
+  }
+  if (safe < 1 || safe > 4) {
+    next(new Error('Safe rating must be between 1-4'));
+    return;
+  }
+  if (overall < 1 || overall > 4) {
+    next(new Error('Overall rating must be between 1-4'));
     return;
   }
   
   next();
 });
 
-// 启用虚拟字段在JSON输出中显示
+// Enable virtual fields in JSON output
 RatingSchema.set('toJSON', { virtuals: true });
 RatingSchema.set('toObject', { virtuals: true });
 

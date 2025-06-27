@@ -1,7 +1,6 @@
 const Survey = require('../models/Survey');
 
-// @desc    提交问卷
-// @route   POST /api/surveys
+// Submit survey
 exports.submitSurvey = async (req, res) => {
   try {
     const { sessionId, surveyData } = req.body;
@@ -9,17 +8,17 @@ exports.submitSurvey = async (req, res) => {
     if (!sessionId || !surveyData) {
       return res.status(400).json({
         success: false,
-        error: '缺少会话ID或问卷数据'
+        error: 'Missing session ID or survey data'
       });
     }
     
-    // 检查是否已存在相同sessionId的记录
+    // Check if survey already exists for this session
     const existingSurvey = await Survey.findOne({ sessionId });
     
     if (existingSurvey) {
       return res.status(400).json({
         success: false,
-        error: '该会话已提交过问卷'
+        error: 'Survey already submitted for this session'
       });
     }
     
@@ -33,16 +32,15 @@ exports.submitSurvey = async (req, res) => {
       data: survey
     });
   } catch (err) {
-    console.error('提交问卷错误:', err);
+    console.error('Survey submission error:', err);
     return res.status(500).json({
       success: false,
-      error: '服务器错误'
+      error: 'Server error'
     });
   }
 };
 
-// @desc    获取问卷信息
-// @route   GET /api/surveys/:sessionId
+// Get survey by session ID
 exports.getSurvey = async (req, res) => {
   try {
     const { sessionId } = req.params;
@@ -52,7 +50,7 @@ exports.getSurvey = async (req, res) => {
     if (!survey) {
       return res.status(404).json({
         success: false,
-        error: '未找到该会话的问卷数据'
+        error: 'Survey not found for this session'
       });
     }
     
@@ -63,7 +61,7 @@ exports.getSurvey = async (req, res) => {
   } catch (err) {
     return res.status(500).json({
       success: false,
-      error: '服务器错误'
+      error: 'Server error'
     });
   }
 };
