@@ -22,6 +22,9 @@ const RatingSchema = new mongoose.Schema({
     id: {
       type: String
     },
+    index: {
+      type: Number
+    },
     name: {
       type: String,
       default: 'Unnamed road'
